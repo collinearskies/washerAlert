@@ -41,6 +41,7 @@
 #include "hw_common_reg.h"
 #include "shamd5.h"
 #include "uart.h"
+#include "adc.h"
 
 //Free_rtos/ti-rtos includes
 #include "osi.h"
@@ -96,6 +97,14 @@ x-amz-date:"
 
 #define STRING_TO_SIGN_ALGO		"AWS4-HMAC-SHA256\n"
 #define STRING_TO_SIGN_SCOPE	"/us-east-1/sns/aws4_request\n"
+
+#define MIC_INPUT_CHANNEL		ADC_CH_1
+#define MIC_NUMBER_OF_SAMPLES	50
+#define MIC_SAMPLE_INTERVAL		1000  // Clock Cycles
+#define AMPLITUDE_INTERVAL		1  // Seconds
+#define MIC_THRESHOLD			25  // millivolts
+#define START_THRESHHOLD_NUM	3
+#define FINISH_THRESHHOLD_NUM	10
 
 #define SLEEP_TIME              80000000
 #define OSI_STACK_SIZE          4096
@@ -199,7 +208,7 @@ SlSockAddrIn_t sLocalAddr;
 //*****************************************************************************
 void MonitorWasherTask(void *pvParameters);
 static void DisplayBanner(char * AppName);
-int SampleADC(unsigned int iNumSamples);
+int SampleADC(unsigned int uiNumSamples, unsigned int uiChannel);
 int WaitForStart(void);
 int WaitForFinish(void);
 static int CreateConnection(unsigned long ulDestinationIP);
@@ -218,15 +227,63 @@ long POSTToSNS(int iSockID, char *pcSNSTopic);  //TODO: return error codes?
 //!
 //! \brief  This function reads the ADC
 //!
-//! \param iNumSamples is the number of samples to collect
+//! \param uiNumSamples is the number of samples to collect
+//! \param uiChannel indicates which ADC channel to read, as defined in driverlib/adc.h
 //!
-//! \return the difference between the highest and lowest sample readings  //TODO: clarify this description
+//! \return the difference between the highest and lowest sample readings in millivolts  //TODO: clarify this description
 //!
 //
 //*****************************************************************************
-int SampleADC(unsigned int iNumSamples)
+int SampleADC(unsigned int uiNumSamples, unsigned int uiChannel)
 {
-	return 0;
+	unsigned int uiMax = 0x000;
+	unsigned int uiMin = 0x400;
+	unsigned int uiSample, uiAmplitude;
+
+
+	// Pinmux for the ADC input pin 58
+	MAP_PinTypeADC(PIN_58, PIN_MODE_255);
+	// Enable ADC channel
+	MAP_ADCChannelEnable(ADC_BASE, uiChannel);
+	// Configure ADC timer which is used to timestamp the ADC data samples
+	MAP_ADCTimerConfig(ADC_BASE,2^17);
+	// Enable ADC timer which is used to timestamp the ADC data samples
+	MAP_ADCTimerEnable(ADC_BASE);
+	// Enable ADC module
+	MAP_ADCEnable(ADC_BASE);
+
+	while(uiNumSamples)
+	{
+		// MAP_ADCFIFORead returns a value with:
+		//    bits[13:2] : ADC sample
+		//    bits[31:14]: Time stamp of ADC sample
+		// We only want the ADC sample, not the timestamp.
+		// Also, the ADC has an effective nominal accuracy of 10 bits, so we
+		//    are only interested in bits[13:4] of the returned value
+		uiSample = (MAP_ADCFIFORead(ADC_BASE, uiChannel)>>4) & 0x3FF;
+		if(uiSample > uiMax)
+		{
+			uiMax = uiSample;
+		}
+		else if(uiSample < uiMin)
+		{
+			uiMin = uiSample;
+		}
+
+		MAP_UtilsDelay(MIC_SAMPLE_INTERVAL);
+
+		uiNumSamples--;
+	}
+
+	// Find the amplitude
+	uiAmplitude = uiMax - uiMin;
+
+	// Convert the result into millivolts
+	uiAmplitude = (1320 * uiAmplitude) / 1024;
+
+	UART_PRINT("%i\r\n", uiAmplitude);
+
+	return uiAmplitude;
 }
 
 //*****************************************************************************
@@ -241,6 +298,26 @@ int SampleADC(unsigned int iNumSamples)
 //*****************************************************************************
 int WaitForStart(void)
 {
+	unsigned int uiAmplitude = 0;
+	unsigned int uiCount = 0;
+
+	UART_PRINT("Waiting for the washer to start.\r\n");
+	while(uiCount<START_THRESHHOLD_NUM)
+	{
+		MAP_UtilsDelay(13333333 * AMPLITUDE_INTERVAL);  // TODO: use HW timers instead of a delay
+		uiAmplitude = SampleADC(MIC_NUMBER_OF_SAMPLES , MIC_INPUT_CHANNEL);
+		if(uiAmplitude>MIC_THRESHOLD)
+		{
+			uiCount++;
+		}
+		else
+		{
+			uiCount = 0;
+		}
+	}
+	UART_PRINT("The washer has started.\r\n");
+
+	// TODO: error codes
 	return 0;
 }
 
@@ -256,6 +333,26 @@ int WaitForStart(void)
 //*****************************************************************************
 int WaitForFinish(void)
 {
+	unsigned int uiAmplitude = 0;
+	unsigned int uiCount = 0;
+
+	UART_PRINT("Waiting for the washer to finish.\r\n");
+	while(uiCount<FINISH_THRESHHOLD_NUM)
+	{
+		MAP_UtilsDelay(13333333 * AMPLITUDE_INTERVAL);  // TODO: use HW timers instead of a delay
+		uiAmplitude = SampleADC(MIC_NUMBER_OF_SAMPLES , MIC_INPUT_CHANNEL);
+		if(uiAmplitude<MIC_THRESHOLD)
+		{
+			uiCount++;
+		}
+		else
+		{
+			uiCount = 0;
+		}
+	}
+	UART_PRINT("The washer has finished.\r\n");
+
+	// TODO: error codes
 	return 0;
 }
 
@@ -1165,6 +1262,9 @@ void MonitorWasherTask(void *pvParameters)
     // Reset The state of the machine
     //
     Network_IF_ResetMCUStateMachine();
+
+    WaitForStart();
+    WaitForFinish();
 
     //
     // Start the driver
