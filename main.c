@@ -851,7 +851,7 @@ void GenerateSignature(char * pcResult, char *pcDatetime, char *pcDate)
 	MAP_SHAMD5HMACKeySet(SHAMD5_BASE, pcHashKey);
 	MAP_SHAMD5HMACProcess(SHAMD5_BASE, pcHashData, uiDataLength, pcHashResult);
 
-	strcpy(pcHashKey, pcHashResult);
+	memcpy(pcHashKey, pcHashResult, 32);
 	for(ui8count=32; ui8count<64; ui8count++)
 	{
 		*(pcHashKey + ui8count) = 0;
@@ -861,7 +861,7 @@ void GenerateSignature(char * pcResult, char *pcDatetime, char *pcDate)
 	MAP_SHAMD5HMACKeySet(SHAMD5_BASE, pcHashKey);
 	MAP_SHAMD5HMACProcess(SHAMD5_BASE, pcHashData, uiDataLength, pcHashResult);
 
-	strcpy(pcHashKey, pcHashResult);
+	memcpy(pcHashKey, pcHashResult, 32);
 	for(ui8count=32; ui8count<64; ui8count++)
 	{
 		*(pcHashKey + ui8count) = 0;
@@ -871,7 +871,7 @@ void GenerateSignature(char * pcResult, char *pcDatetime, char *pcDate)
 	MAP_SHAMD5HMACKeySet(SHAMD5_BASE, pcHashKey);
 	MAP_SHAMD5HMACProcess(SHAMD5_BASE, pcHashData, uiDataLength, pcHashResult);
 
-	strcpy(pcHashKey, pcHashResult);
+	memcpy(pcHashKey, pcHashResult, 32);
 	for(ui8count=32; ui8count<64; ui8count++)
 	{
 		*(pcHashKey + ui8count) = 0;
@@ -880,7 +880,7 @@ void GenerateSignature(char * pcResult, char *pcDatetime, char *pcDate)
 	uiDataLength = strlen(SNS_REQUEST_KEY);
 	MAP_SHAMD5HMACKeySet(SHAMD5_BASE, pcHashKey);
 	MAP_SHAMD5HMACProcess(SHAMD5_BASE, pcHashData, uiDataLength, pcHashResult);
-	strcpy(pcHashKey, pcHashResult);
+	memcpy(pcHashKey, pcHashResult, 32);
 	for(ui8count=32; ui8count<64; ui8count++)
 	{
 		*(pcHashKey + ui8count) = 0;
@@ -1036,12 +1036,12 @@ long POSTToSNS(int iSockID, char *pcSNSTopic)
 	char acRecvBuffer[1460];
 	char *pcBufLocation;
 	char acSignature[64];
-	char acDatetime[17], acDate[8];
+	char acDatetime[17], acDate[9];
 
 	// Get the current datetime
 	GetDatetime(acDatetime);
 	memcpy(acDate, acDatetime, 8); // TODO: check that this works
-	acDate[8] = 0;
+	acDate[8] = '\0';
 
 	memset(acRecvBuffer, 0, sizeof(acRecvBuffer));
 
