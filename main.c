@@ -98,7 +98,7 @@ x-amz-date:"
 #define STRING_TO_SIGN_ALGO		"AWS4-HMAC-SHA256\n"
 #define STRING_TO_SIGN_SCOPE	"/us-east-1/sns/aws4_request\n"
 
-#define MIC_INPUT_CHANNEL		ADC_CH_1
+#define MIC_INPUT_CHANNEL		ADC_CH_1 // ADC channel 1 is P58 on the CC3200 launchpad
 #define MIC_NUMBER_OF_SAMPLES	50
 #define MIC_SAMPLE_INTERVAL		1000  // Clock Cycles
 #define AMPLITUDE_INTERVAL		1  // Seconds
