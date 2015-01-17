@@ -807,6 +807,7 @@ void GenerateSignature(char * pcResult, char *pcDatetime, char *pcDate)
 	char *pcHashKey, *pcHashData, *pcHashResult;
 	char acHashKey[64], acHashData[512], acHashResult[32], acHexString[65];
 	unsigned int uiDataLength;
+	unsigned int uiPointerOffset;
 	unsigned int ui8count;  // TODO: remove with debug code
 
 	pcHashKey = acHashKey;  //TODO: why make pcHashKey a variable, when acKey does the same thing anyway?
@@ -842,49 +843,35 @@ void GenerateSignature(char * pcResult, char *pcDatetime, char *pcDate)
 	// Create the Signature Key
 	strcpy(pcHashKey, SECRET_KEY_PREFIX);
 	strcpy(pcHashKey+strlen(SECRET_KEY_PREFIX), SNS_SECRET_KEY);
-	for(ui8count=strlen(SNS_SECRET_KEY)+strlen(SECRET_KEY_PREFIX); ui8count<64; ui8count++)
-	{
-		*(pcHashKey + ui8count) = 0;
-	}
+	uiPointerOffset = strlen(SNS_SECRET_KEY)+strlen(SECRET_KEY_PREFIX);
+	memset(pcHashKey+uiPointerOffset, 0, 64-uiPointerOffset);
 	strcpy(pcHashData, pcDate);
 	uiDataLength = strlen(pcDate);
 	MAP_SHAMD5HMACKeySet(SHAMD5_BASE, pcHashKey);
 	MAP_SHAMD5HMACProcess(SHAMD5_BASE, pcHashData, uiDataLength, pcHashResult);
 
 	memcpy(pcHashKey, pcHashResult, 32);
-	for(ui8count=32; ui8count<64; ui8count++)
-	{
-		*(pcHashKey + ui8count) = 0;
-	}
+	memset(pcHashKey+32, 0, 32);
 	strcpy(pcHashData, SNS_REGION);
 	uiDataLength = strlen(SNS_REGION);
 	MAP_SHAMD5HMACKeySet(SHAMD5_BASE, pcHashKey);
 	MAP_SHAMD5HMACProcess(SHAMD5_BASE, pcHashData, uiDataLength, pcHashResult);
 
 	memcpy(pcHashKey, pcHashResult, 32);
-	for(ui8count=32; ui8count<64; ui8count++)
-	{
-		*(pcHashKey + ui8count) = 0;
-	}
+	memset(pcHashKey+32, 0, 32);
 	strcpy(pcHashData, SNS_SERVICE);
 	uiDataLength = strlen(SNS_SERVICE);
 	MAP_SHAMD5HMACKeySet(SHAMD5_BASE, pcHashKey);
 	MAP_SHAMD5HMACProcess(SHAMD5_BASE, pcHashData, uiDataLength, pcHashResult);
 
 	memcpy(pcHashKey, pcHashResult, 32);
-	for(ui8count=32; ui8count<64; ui8count++)
-	{
-		*(pcHashKey + ui8count) = 0;
-	}
+	memset(pcHashKey+32, 0, 32);
 	strcpy(pcHashData, SNS_REQUEST_KEY);
 	uiDataLength = strlen(SNS_REQUEST_KEY);
 	MAP_SHAMD5HMACKeySet(SHAMD5_BASE, pcHashKey);
 	MAP_SHAMD5HMACProcess(SHAMD5_BASE, pcHashData, uiDataLength, pcHashResult);
 	memcpy(pcHashKey, pcHashResult, 32);
-	for(ui8count=32; ui8count<64; ui8count++)
-	{
-		*(pcHashKey + ui8count) = 0;
-	}
+	memset(pcHashKey+32, 0, 32);
 
 	// pcHashKey now contains the Derived Signing Key
 
