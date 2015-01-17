@@ -401,7 +401,7 @@ static int CreateConnection(unsigned long ulDestinationIP)
 //!
 //! \brief  This function publishes a message to the specified SNS topic.
 //!
-//! \param  pacSNSTopic is a pointer to the topic ARN.
+//! \param  pcSNSTopic is a pointer to the topic ARN string.
 //!
 //! \return none
 //!
@@ -447,6 +447,19 @@ void PublishSNS(char *pcSNSTopic)
 	lRetVal = POSTToSNS(iSocketDesc, pcSNSTopic);
 }
 
+//*****************************************************************************
+//
+//! Connects to the NTP server and retrieves the date and time.
+//!
+//! \brief  Connects to the NTP server and retrieves the date and time.
+//!
+//! \param  pcDatetime is a pointer to where we will store the datetime.
+//!           The allocated memory must be at least 17 chars in length.
+//!
+//! \return none
+//!
+//
+//*****************************************************************************
 void GetDatetime(char *pcDatetime)
 {
 	long lRetVal = -1;
@@ -519,8 +532,9 @@ void GetDatetime(char *pcDatetime)
 //!
 //! \brief  This function obtains the NTP time from the server.
 //!
-//! \param  GmtDiffHr is the GMT Time Zone difference in hours
-//! \param  GmtDiffMins is the GMT Time Zone difference in minutes
+//! \param  pcResult is where we will store the result. Must be at least 17 chars long.
+//! \param  ulDestinationIP is 4 bytes representing th IP of the NTP server
+//! \param  iSockID is the socket ID of the NTP connection
 //!
 //! \return 0 : success, -ve : failure
 //!
@@ -576,7 +590,7 @@ long GetSNTPTime(char * pcResult, unsigned long ulDestinationIP, int iSockID)
 	short isGeneralVar;
 	unsigned long ulGeneralVar;
 	unsigned long ulGeneralVar1;
-	char acTimeStore[30];
+	char acTimeStore[17];
 	char *pcCCPtr;
 	unsigned short uisCCLen;
     //
@@ -797,6 +811,9 @@ SHAMD5IntHandler(void)
 //! \brief  This generates the authentication signature, required for SNS.
 //!
 //! \param  pcResult is a pointer to where the signature will be stored.
+//! \param  pcDatetime is a pointer to a datetime string of the format YYYYMMDD'T'HHMMSS'Z'
+//!           For example: "20150117T215403Z"
+//! \param  pcDate is a pointer to a date string of the format YYYYMMDD
 //!
 //! \return none
 //!
@@ -961,6 +978,21 @@ void GenerateSignature(char * pcResult, char *pcDatetime, char *pcDate)
 	HexToString(pcHashResult, 32, pcResult);
 }
 
+//*****************************************************************************
+//
+//! Converts a numeric hexidecimal value to a string.
+//!
+//! \brief  Converts a numeric hexidecimal value to a string.
+//!
+//! \param  pcHex is a pointer to the original hex value we will be converting
+//! \param  uiHexLength is the number of bytes in the hex value
+//! \param  pcConveredString is a pointer to where we will store the converted string
+//!           The allocated space should be at least uiHexLength*2 chars long
+//!
+//! \return none
+//!
+//
+//*****************************************************************************
 void HexToString(char * pcHex, unsigned int uiHexLength, char * pcConvertedString)
 {
 	unsigned int uiCount;
@@ -978,6 +1010,18 @@ void HexToString(char * pcHex, unsigned int uiHexLength, char * pcConvertedStrin
 	*(pcConvertedString + uiHexLength*2) = (char)0;
 }
 
+//*****************************************************************************
+//
+//! Converts a single hexidecimal nibble (4 bits) to a string.
+//!
+//! \brief  Converts a single hexidecimal nibble (4 bits) to a string.
+//!
+//! \param  uiHexNibble is the 4-bit hex value we will convert.
+//!
+//! \return The character which represents the input nibble.
+//!
+//
+//*****************************************************************************
 char HexNibbleToChar(unsigned int uiHexNibble)
 {
 	char cHexChar;
@@ -1009,7 +1053,7 @@ char HexNibbleToChar(unsigned int uiHexNibble)
 //!
 //! \param  iSockID is the socket ID
 //!
-//! \return none
+//! \return 0 if success
 //!
 //
 //*****************************************************************************
@@ -1027,7 +1071,7 @@ long POSTToSNS(int iSockID, char *pcSNSTopic)
 
 	// Get the current datetime
 	GetDatetime(acDatetime);
-	memcpy(acDate, acDatetime, 8); // TODO: check that this works
+	memcpy(acDate, acDatetime, 8);
 	acDate[8] = '\0';
 
 	memset(acRecvBuffer, 0, sizeof(acRecvBuffer));
