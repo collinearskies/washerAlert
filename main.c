@@ -122,6 +122,8 @@ typedef enum{
     STATUS_CODE_MAX = -0xBB8
 }e_AppStatusCodes;
 
+char g_acTopicARN[64];
+
 unsigned short g_usTimerInts;
 SlSecParams_t SecurityParams = {0};
 
@@ -1267,7 +1269,6 @@ void LedTimerDeinitStop()
 void MonitorWasherTask(void *pvParameters)
 {
     long lRetVal = -1;
-    char acTopicARN[64];
 
     UART_PRINT("Washer Alert: Test Begin\n\r");
 
@@ -1302,72 +1303,77 @@ void MonitorWasherTask(void *pvParameters)
     //
     Network_IF_ResetMCUStateMachine();
 
-    while(1){};
-
     while(1)
     {
-		WaitForStart();
-		WaitForFinish();
+    	// When the user presses a button, an ISR will set acTopicARN to
+    	//   the appropriate SNS topic. This indicates that the main loop
+    	//   proceed with listening for washer/dryer noises.
+    	if(g_acTopicARN[0])
+    	{
+			WaitForStart();
+			WaitForFinish();
 
-		//
-		// Start the driver
-		//
-		lRetVal = Network_IF_InitDriver(ROLE_STA);
-		if(lRetVal < 0)
-		{
-		   UART_PRINT("Failed to start SimpleLink Device\n\r",lRetVal);
-		   LOOP_FOREVER();
-		}
+			//
+			// Start the driver
+			//
+			lRetVal = Network_IF_InitDriver(ROLE_STA);
+			if(lRetVal < 0)
+			{
+			   UART_PRINT("Failed to start SimpleLink Device\n\r",lRetVal);
+			   LOOP_FOREVER();
+			}
 
-		// switch on Green LED to indicate Simplelink is properly up
-		GPIO_IF_LedOn(MCU_ON_IND);
+			// switch on Green LED to indicate Simplelink is properly up
+			GPIO_IF_LedOn(MCU_ON_IND);
 
-		// Start Timer to blink Red LED till AP connection
-		LedTimerConfigNStart();
+			// Start Timer to blink Red LED till AP connection
+			LedTimerConfigNStart();
 
-		// Initialize AP security params
-		SecurityParams.Key = (signed char *)SECURITY_KEY;
-		SecurityParams.KeyLen = strlen(SECURITY_KEY);
-		SecurityParams.Type = SECURITY_TYPE;
+			// Initialize AP security params
+			SecurityParams.Key = (signed char *)SECURITY_KEY;
+			SecurityParams.KeyLen = strlen(SECURITY_KEY);
+			SecurityParams.Type = SECURITY_TYPE;
 
-		//
-		// Connect to the Access Point
-		//
-		lRetVal = Network_IF_ConnectAP(SSID_NAME, SecurityParams);
-		// TODO: Network_IF_ConnectAP has a function to handle a failure to connect,
-		//			but the program halts if it enters that loop
-		if(lRetVal < 0)
-		{
-		   UART_PRINT("Connection to an AP failed\n\r");
-		   LOOP_FOREVER();
-		}
+			//
+			// Connect to the Access Point
+			//
+			lRetVal = Network_IF_ConnectAP(SSID_NAME, SecurityParams);
+			// TODO: Network_IF_ConnectAP has a function to handle a failure to connect,
+			//			but the program halts if it enters that loop
+			if(lRetVal < 0)
+			{
+			   UART_PRINT("Connection to an AP failed\n\r");
+			   LOOP_FOREVER();
+			}
 
-		//
-		// Disable the LED blinking Timer as Device is connected to AP
-		//
-		LedTimerDeinitStop();
+			//
+			// Disable the LED blinking Timer as Device is connected to AP
+			//
+			LedTimerDeinitStop();
 
-		//
-		// Switch ON RED LED to indicate that Device acquired an IP
-		//
-		GPIO_IF_LedOn(MCU_IP_ALLOC_IND);
+			//
+			// Switch ON RED LED to indicate that Device acquired an IP
+			//
+			GPIO_IF_LedOn(MCU_IP_ALLOC_IND);
 
+			PublishSNS(g_acTopicARN);
 
-		strcpy(acTopicARN, SNS_TOPIC_ONE);  // TODO: split for multiple topicARN's
-		PublishSNS(acTopicARN);
+			// Clear the SNS topic, so that we don't run the loop again.
+			g_acTopicARN[0] = '\0';
 
 
 //end: // TODO: why is this "end" line here?
 
-		//
-		// Stop the driver
-		//
-		lRetVal = Network_IF_DeInitDriver();
-		if(lRetVal < 0)
-		{
-		   UART_PRINT("Failed to stop SimpleLink Device\n\r");
-		   LOOP_FOREVER();
-		}
+			//
+			// Stop the driver
+			//
+			lRetVal = Network_IF_DeInitDriver();
+			if(lRetVal < 0)
+			{
+			   UART_PRINT("Failed to stop SimpleLink Device\n\r");
+			   LOOP_FOREVER();
+			}
+    	}
     }
 
     //
@@ -1435,7 +1441,7 @@ void SW2InterruptHandler()
 	if(ulPinState & GPIO_PIN_6)
 	{
 		// Start the interrupt routine
-		GPIO_IF_LedToggle(MCU_RED_LED_GPIO);
+		strcpy(g_acTopicARN, SNS_TOPIC_TWO);
 		MAP_UtilsDelay(SLEEP_TIME/20);
 
 		// Clear the interrupt flag
@@ -1458,7 +1464,7 @@ void SW3InterruptHandler()
 	if(ulPinState & GPIO_PIN_5)
 	{
 		// Start the interrupt routine
-		GPIO_IF_LedToggle(MCU_GREEN_LED_GPIO);
+		strcpy(g_acTopicARN, SNS_TOPIC_ONE);
 		MAP_UtilsDelay(SLEEP_TIME/20);
 
 		// Clear the interrupt flag
