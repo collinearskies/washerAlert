@@ -42,6 +42,7 @@
 #include "shamd5.h"
 #include "uart.h"
 #include "adc.h"
+#include "gpio.h"
 
 //Free_rtos/ti-rtos includes
 #include "osi.h"
@@ -220,6 +221,10 @@ void GenerateSignature(char * pcHashResult, char *pcDatetime, char *pcDate);  //
 void HexToString(char * pcHex, unsigned int uiHexLength, char * pcConvertedString);
 char HexNibbleToChar(unsigned int uiHexNibble);
 long POSTToSNS(int iSockID, char *pcSNSTopic);  //TODO: return error codes?
+
+void SetupButtonInterrupts();
+void SW3InterruptHandler();
+void SW2InterruptHandler();
 
 //*****************************************************************************
 //
@@ -1283,77 +1288,86 @@ void MonitorWasherTask(void *pvParameters)
     //
     // Configure LED
     //
-    GPIO_IF_LedConfigure(LED1|LED3);
+    GPIO_IF_LedConfigure(LED1|LED2|LED3);
 
     GPIO_IF_LedOff(MCU_RED_LED_GPIO);
-    GPIO_IF_LedOff(MCU_GREEN_LED_GPIO);    
+    GPIO_IF_LedOff(MCU_ORANGE_LED_GPIO);
+    GPIO_IF_LedOff(MCU_GREEN_LED_GPIO);
 
+    // Configure Button Interrupts
+    SetupButtonInterrupts();
 
     //
     // Reset The state of the machine
     //
     Network_IF_ResetMCUStateMachine();
 
-    WaitForStart();
-    WaitForFinish();
+    while(1){};
 
-    //
-    // Start the driver
-    //
-    lRetVal = Network_IF_InitDriver(ROLE_STA);
-    if(lRetVal < 0)
+    while(1)
     {
-       UART_PRINT("Failed to start SimpleLink Device\n\r",lRetVal);
-       LOOP_FOREVER();
-    }
+		WaitForStart();
+		WaitForFinish();
 
-    // switch on Green LED to indicate Simplelink is properly up
-    GPIO_IF_LedOn(MCU_ON_IND);
+		//
+		// Start the driver
+		//
+		lRetVal = Network_IF_InitDriver(ROLE_STA);
+		if(lRetVal < 0)
+		{
+		   UART_PRINT("Failed to start SimpleLink Device\n\r",lRetVal);
+		   LOOP_FOREVER();
+		}
 
-    // Start Timer to blink Red LED till AP connection
-    LedTimerConfigNStart();
+		// switch on Green LED to indicate Simplelink is properly up
+		GPIO_IF_LedOn(MCU_ON_IND);
 
-    // Initialize AP security params
-    SecurityParams.Key = (signed char *)SECURITY_KEY;
-    SecurityParams.KeyLen = strlen(SECURITY_KEY);
-    SecurityParams.Type = SECURITY_TYPE;
+		// Start Timer to blink Red LED till AP connection
+		LedTimerConfigNStart();
 
-    //
-    // Connect to the Access Point
-    //
-    lRetVal = Network_IF_ConnectAP(SSID_NAME, SecurityParams);
-    // TODO: Network_IF_ConnectAP has a function to handle a failure to connect,
-    //			but the program halts if it enters that loop
-    if(lRetVal < 0)
-    {
-       UART_PRINT("Connection to an AP failed\n\r");
-       LOOP_FOREVER();
-    }
+		// Initialize AP security params
+		SecurityParams.Key = (signed char *)SECURITY_KEY;
+		SecurityParams.KeyLen = strlen(SECURITY_KEY);
+		SecurityParams.Type = SECURITY_TYPE;
 
-    //
-    // Disable the LED blinking Timer as Device is connected to AP
-    //
-    LedTimerDeinitStop();
+		//
+		// Connect to the Access Point
+		//
+		lRetVal = Network_IF_ConnectAP(SSID_NAME, SecurityParams);
+		// TODO: Network_IF_ConnectAP has a function to handle a failure to connect,
+		//			but the program halts if it enters that loop
+		if(lRetVal < 0)
+		{
+		   UART_PRINT("Connection to an AP failed\n\r");
+		   LOOP_FOREVER();
+		}
 
-    //
-    // Switch ON RED LED to indicate that Device acquired an IP
-    //
-    GPIO_IF_LedOn(MCU_IP_ALLOC_IND);
+		//
+		// Disable the LED blinking Timer as Device is connected to AP
+		//
+		LedTimerDeinitStop();
+
+		//
+		// Switch ON RED LED to indicate that Device acquired an IP
+		//
+		GPIO_IF_LedOn(MCU_IP_ALLOC_IND);
 
 
-    strcpy(acTopicARN, SNS_TOPIC_ONE);  // TODO: split for multiple topicARN's
-	PublishSNS(acTopicARN);
+		strcpy(acTopicARN, SNS_TOPIC_ONE);  // TODO: split for multiple topicARN's
+		PublishSNS(acTopicARN);
 
-end: // TODO: why is this "end" line here?
 
-    //
-    // Stop the driver
-    //
-    lRetVal = Network_IF_DeInitDriver();
-    if(lRetVal < 0)
-    {
-       UART_PRINT("Failed to stop SimpleLink Device\n\r");
-       LOOP_FOREVER();
+//end: // TODO: why is this "end" line here?
+
+		//
+		// Stop the driver
+		//
+		lRetVal = Network_IF_DeInitDriver();
+		if(lRetVal < 0)
+		{
+		   UART_PRINT("Failed to stop SimpleLink Device\n\r");
+		   LOOP_FOREVER();
+		}
     }
 
     //
@@ -1389,6 +1403,67 @@ DisplayBanner(char * AppName)
     UART_PRINT("\t\t      CC3200 %s Application       \n\r", AppName);
     UART_PRINT("\t\t *************************************************\n\r");
     UART_PRINT("\n\n\n\r");
+}
+
+void SetupButtonInterrupts()
+{
+	// Setup SW3
+	MAP_GPIOIntTypeSet(GPIOA1_BASE, GPIO_PIN_5, GPIO_FALLING_EDGE);
+	osi_InterruptRegister(INT_GPIOA1, (P_OSI_INTR_ENTRY)SW3InterruptHandler, INT_PRIORITY_LVL_1);
+	MAP_GPIOIntClear(GPIOA1_BASE, GPIO_PIN_5);
+	MAP_GPIOIntEnable(GPIOA1_BASE, GPIO_INT_PIN_5);
+
+	// Setup SW2
+	MAP_GPIOIntTypeSet(GPIOA2_BASE, GPIO_PIN_6, GPIO_FALLING_EDGE);
+	osi_InterruptRegister(INT_GPIOA2, (P_OSI_INTR_ENTRY)SW2InterruptHandler, INT_PRIORITY_LVL_1);
+	MAP_GPIOIntClear(GPIOA2_BASE, GPIO_PIN_6);
+	MAP_GPIOIntEnable(GPIOA2_BASE, GPIO_INT_PIN_6);
+}
+
+//*****************************************************************************
+//
+//! Interrupt Handler for SW2
+//!
+//! \param  none
+//!
+//! \return none
+//!
+//*****************************************************************************
+void SW2InterruptHandler()
+{
+	unsigned long ulPinState = GPIOIntStatus(GPIOA2_BASE, true);
+	if(ulPinState & GPIO_PIN_6)
+	{
+		// Start the interrupt routine
+		GPIO_IF_LedToggle(MCU_RED_LED_GPIO);
+		MAP_UtilsDelay(SLEEP_TIME/20);
+
+		// Clear the interrupt flag
+		MAP_GPIOIntClear(GPIOA2_BASE, GPIO_PIN_6);
+	}
+}
+
+//*****************************************************************************
+//
+//! Interrupt Handler for SW3
+//!
+//! \param  none
+//!
+//! \return none
+//!
+//*****************************************************************************
+void SW3InterruptHandler()
+{
+	unsigned long ulPinState = GPIOIntStatus(GPIOA1_BASE, true);
+	if(ulPinState & GPIO_PIN_5)
+	{
+		// Start the interrupt routine
+		GPIO_IF_LedToggle(MCU_GREEN_LED_GPIO);
+		MAP_UtilsDelay(SLEEP_TIME/20);
+
+		// Clear the interrupt flag
+		MAP_GPIOIntClear(GPIOA1_BASE, GPIO_PIN_5);
+	}
 }
 
 //*****************************************************************************
