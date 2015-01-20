@@ -448,6 +448,9 @@ void PublishSNS(char *pcSNSTopic)
 	if(lRetVal < 0)
 	{
 	   ERR_PRINT(lRetVal);
+	   GPIO_IF_LedOn(MCU_RED_LED_GPIO);
+	   GPIO_IF_LedOff(MCU_ORANGE_LED_GPIO);
+	   GPIO_IF_LedOff(MCU_GREEN_LED_GPIO);
 	   LOOP_FOREVER();
 	}
 
@@ -504,6 +507,9 @@ void GetDatetime(char *pcDatetime)
         if(lRetVal < 0)
         {
            ERR_PRINT(lRetVal);
+           GPIO_IF_LedOn(MCU_RED_LED_GPIO);
+           GPIO_IF_LedOff(MCU_ORANGE_LED_GPIO);
+           GPIO_IF_LedOff(MCU_GREEN_LED_GPIO);
            LOOP_FOREVER();
         }
 
@@ -1201,14 +1207,14 @@ TimerPeriodicIntHandler(void)
         //
         // Off Led
         //
-        GPIO_IF_LedOff(MCU_RED_LED_GPIO);
+        GPIO_IF_LedOff(MCU_ORANGE_LED_GPIO);
     }
     else
     {
         //
         // On Led
         //
-        GPIO_IF_LedOn(MCU_RED_LED_GPIO);
+        GPIO_IF_LedOn(MCU_ORANGE_LED_GPIO);
     }
 }
 
@@ -1320,13 +1326,16 @@ void MonitorWasherTask(void *pvParameters)
 			if(lRetVal < 0)
 			{
 			   UART_PRINT("Failed to start SimpleLink Device\n\r",lRetVal);
+			   GPIO_IF_LedOn(MCU_RED_LED_GPIO);
+			   GPIO_IF_LedOff(MCU_ORANGE_LED_GPIO);
+			   GPIO_IF_LedOff(MCU_GREEN_LED_GPIO);
 			   LOOP_FOREVER();
 			}
 
 			// switch on Green LED to indicate Simplelink is properly up
-			GPIO_IF_LedOn(MCU_ON_IND);
+//			GPIO_IF_LedOn(MCU_GREEN_LED_GPIO);
 
-			// Start Timer to blink Red LED till AP connection
+			// Start Timer to blink Orange LED till AP connection
 			LedTimerConfigNStart();
 
 			// Initialize AP security params
@@ -1343,6 +1352,9 @@ void MonitorWasherTask(void *pvParameters)
 			if(lRetVal < 0)
 			{
 			   UART_PRINT("Connection to an AP failed\n\r");
+			   GPIO_IF_LedOn(MCU_RED_LED_GPIO);
+			   GPIO_IF_LedOff(MCU_ORANGE_LED_GPIO);
+			   GPIO_IF_LedOff(MCU_GREEN_LED_GPIO);
 			   LOOP_FOREVER();
 			}
 
@@ -1352,9 +1364,9 @@ void MonitorWasherTask(void *pvParameters)
 			LedTimerDeinitStop();
 
 			//
-			// Switch ON RED LED to indicate that Device acquired an IP
+			// Switch ON ORANGE LED to indicate that Device acquired an IP
 			//
-			GPIO_IF_LedOn(MCU_IP_ALLOC_IND);
+			GPIO_IF_LedOn(MCU_ORANGE_LED_GPIO);
 
 			PublishSNS(g_acTopicARN);
 
@@ -1371,24 +1383,18 @@ void MonitorWasherTask(void *pvParameters)
 			if(lRetVal < 0)
 			{
 			   UART_PRINT("Failed to stop SimpleLink Device\n\r");
+			   GPIO_IF_LedOn(MCU_RED_LED_GPIO);
+			   GPIO_IF_LedOff(MCU_ORANGE_LED_GPIO);
+			   GPIO_IF_LedOff(MCU_GREEN_LED_GPIO);
 			   LOOP_FOREVER();
 			}
+
+			// Turn off all the LEDs to indicate that we are done!
+			GPIO_IF_LedOff(MCU_RED_LED_GPIO);
+			GPIO_IF_LedOff(MCU_ORANGE_LED_GPIO);
+			GPIO_IF_LedOff(MCU_GREEN_LED_GPIO);
     	}
     }
-
-    //
-    // Switch Off RED & Green LEDs to indicate that Device is
-    // disconnected from AP and Simplelink is shutdown
-    //
-    GPIO_IF_LedOff(MCU_IP_ALLOC_IND);
-    GPIO_IF_LedOff(MCU_GREEN_LED_GPIO);
-
-    UART_PRINT("Washer Alert: Test Complete\n\r");
-
-    //
-    // Loop here
-    //
-    LOOP_FOREVER();
 }
 
 //*****************************************************************************
@@ -1556,6 +1562,9 @@ void main()
     if(lRetVal < 0)
     {
         ERR_PRINT(lRetVal);
+        GPIO_IF_LedOn(MCU_RED_LED_GPIO);
+        GPIO_IF_LedOff(MCU_ORANGE_LED_GPIO);
+		GPIO_IF_LedOff(MCU_GREEN_LED_GPIO);
         LOOP_FOREVER();
     }
 
@@ -1572,6 +1581,9 @@ void main()
     if(lRetVal < 0)
     {
         ERR_PRINT(lRetVal);
+        GPIO_IF_LedOn(MCU_RED_LED_GPIO);
+        GPIO_IF_LedOff(MCU_ORANGE_LED_GPIO);
+		GPIO_IF_LedOff(MCU_GREEN_LED_GPIO);
         LOOP_FOREVER();
     }
 
