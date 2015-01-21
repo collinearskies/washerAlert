@@ -1557,6 +1557,7 @@ void SW2InterruptHandler()
 	{
 		// Start the interrupt routine
 		strcpy(g_acTopicARN, SNS_TOPIC_TWO);
+		UART_PRINT("Topic set to:\r\n%s\r\n", SNS_TOPIC_TWO);
 		MAP_UtilsDelay(SLEEP_TIME/20);
 
 		// Clear the interrupt flag
@@ -1580,6 +1581,7 @@ void SW3InterruptHandler()
 	{
 		// Start the interrupt routine
 		strcpy(g_acTopicARN, SNS_TOPIC_ONE);
+		UART_PRINT("Topic set to:\r\n%s\r\n", SNS_TOPIC_ONE);
 		MAP_UtilsDelay(SLEEP_TIME/20);
 
 		// Clear the interrupt flag
