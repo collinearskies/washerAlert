@@ -1179,7 +1179,7 @@ long POSTToSNS(int iSockID, char *pcSNSTopic)
 
 //*****************************************************************************
 //
-//! Periodic Timer Interrupt Handler
+//! Red LED Periodic Timer Interrupt Handler
 //!
 //! \param None
 //!
@@ -1187,7 +1187,7 @@ long POSTToSNS(int iSockID, char *pcSNSTopic)
 //
 //*****************************************************************************
 void
-TimerPeriodicIntHandler(void)
+RedBlinkIntHandler(void)
 {
     unsigned long ulInts;
 
@@ -1197,6 +1197,86 @@ TimerPeriodicIntHandler(void)
     //
     ulInts = MAP_TimerIntStatus(TIMERA0_BASE, true);
     MAP_TimerIntClear(TIMERA0_BASE, ulInts);
+
+    //
+    // Increment our interrupt counter.
+    //
+    g_usTimerInts++;
+    if(!(g_usTimerInts & 0x1))
+    {
+        //
+        // Off Led
+        //
+        GPIO_IF_LedOff(MCU_RED_LED_GPIO);
+    }
+    else
+    {
+        //
+        // On Led
+        //
+        GPIO_IF_LedOn(MCU_RED_LED_GPIO);
+    }
+}
+
+//****************************************************************************
+//
+//! Function to configure and start timer to blink the red LED
+//!
+//! \param none
+//!
+//! return none
+//
+//****************************************************************************
+void RedLedTimerConfigNStart()
+{
+    //
+    // Configure Timer for blinking the LED
+    //
+    Timer_IF_Init(PRCM_TIMERA0,TIMERA0_BASE,TIMER_CFG_PERIODIC,TIMER_A,0);
+    Timer_IF_IntSetup(TIMERA0_BASE,TIMER_A,RedBlinkIntHandler);
+    Timer_IF_Start(TIMERA0_BASE,TIMER_A,PERIODIC_TEST_CYCLES / 10);
+}
+
+//****************************************************************************
+//
+//! Disable the red LED blinking Timer
+//!
+//! \param none
+//!
+//! return none
+//
+//****************************************************************************
+void RedLedTimerDeinitStop()
+{
+    //
+    // Disable the LED blinking Timer
+    //
+    Timer_IF_Stop(TIMERA0_BASE,TIMER_A);
+    Timer_IF_DeInit(TIMERA0_BASE,TIMER_A);
+    GPIO_IF_LedOff(MCU_RED_LED_GPIO);
+
+}
+
+//*****************************************************************************
+//
+//! Orange LED Periodic Timer Interrupt Handler
+//!
+//! \param None
+//!
+//! \return None
+//
+//*****************************************************************************
+void
+OrangeBlinkIntHandler(void)
+{
+    unsigned long ulInts;
+
+    //
+    // Clear all pending interrupts from the timer we are
+    // currently using.
+    //
+    ulInts = MAP_TimerIntStatus(TIMERA1_BASE, true);
+    MAP_TimerIntClear(TIMERA1_BASE, ulInts);
 
     //
     // Increment our interrupt counter.
@@ -1220,40 +1300,118 @@ TimerPeriodicIntHandler(void)
 
 //****************************************************************************
 //
-//! Function to configure and start timer to blink the LED while device is
-//! trying to connect to an AP
+//! Function to configure and start timer to blink the orange LED
 //!
 //! \param none
 //!
 //! return none
 //
 //****************************************************************************
-void LedTimerConfigNStart()
+void OrangeLedTimerConfigNStart()
 {
     //
-    // Configure Timer for blinking the LED for IP acquisition
+    // Configure Timer for blinking the LED
     //
-    Timer_IF_Init(PRCM_TIMERA0,TIMERA0_BASE,TIMER_CFG_PERIODIC,TIMER_A,0);
-    Timer_IF_IntSetup(TIMERA0_BASE,TIMER_A,TimerPeriodicIntHandler);
-    Timer_IF_Start(TIMERA0_BASE,TIMER_A,PERIODIC_TEST_CYCLES / 10);
+    Timer_IF_Init(PRCM_TIMERA1,TIMERA1_BASE,TIMER_CFG_PERIODIC,TIMER_A,0);
+    Timer_IF_IntSetup(TIMERA1_BASE,TIMER_A,OrangeBlinkIntHandler);
+    Timer_IF_Start(TIMERA1_BASE,TIMER_A,PERIODIC_TEST_CYCLES / 10);
 }
 
 //****************************************************************************
 //
-//! Disable the LED blinking Timer as Device is connected to AP
+//! Disable the orange LED blinking Timer
 //!
 //! \param none
 //!
 //! return none
 //
 //****************************************************************************
-void LedTimerDeinitStop()
+void OrangeLedTimerDeinitStop()
 {
     //
-    // Disable the LED blinking Timer as Device is connected to AP
+    // Disable the LED blinking Timer
     //
-    Timer_IF_Stop(TIMERA0_BASE,TIMER_A);
-    Timer_IF_DeInit(TIMERA0_BASE,TIMER_A);
+    Timer_IF_Stop(TIMERA1_BASE,TIMER_A);
+    Timer_IF_DeInit(TIMERA1_BASE,TIMER_A);
+
+}
+
+//*****************************************************************************
+//
+//! Green LED Periodic Timer Interrupt Handler
+//!
+//! \param None
+//!
+//! \return None
+//
+//*****************************************************************************
+void
+GreenBlinkIntHandler(void)
+{
+    unsigned long ulInts;
+
+    //
+    // Clear all pending interrupts from the timer we are
+    // currently using.
+    //
+    ulInts = MAP_TimerIntStatus(TIMERA2_BASE, true);
+    MAP_TimerIntClear(TIMERA2_BASE, ulInts);
+
+    //
+    // Increment our interrupt counter.
+    //
+    g_usTimerInts++;
+    if(!(g_usTimerInts & 0x1))
+    {
+        //
+        // Off Led
+        //
+        GPIO_IF_LedOff(MCU_GREEN_LED_GPIO);
+    }
+    else
+    {
+        //
+        // On Led
+        //
+        GPIO_IF_LedOn(MCU_GREEN_LED_GPIO);
+    }
+}
+
+//****************************************************************************
+//
+//! Function to configure and start timer to blink the green LED
+//!
+//! \param none
+//!
+//! return none
+//
+//****************************************************************************
+void GreenLedTimerConfigNStart()
+{
+    //
+    // Configure Timer for blinking the LED
+    //
+    Timer_IF_Init(PRCM_TIMERA2,TIMERA2_BASE,TIMER_CFG_PERIODIC,TIMER_A,0);
+    Timer_IF_IntSetup(TIMERA2_BASE,TIMER_A,GreenBlinkIntHandler);
+    Timer_IF_Start(TIMERA2_BASE,TIMER_A,PERIODIC_TEST_CYCLES / 10);
+}
+
+//****************************************************************************
+//
+//! Disable the green LED blinking Timer
+//!
+//! \param none
+//!
+//! return none
+//
+//****************************************************************************
+void GreenLedTimerDeinitStop()
+{
+    //
+    // Disable the LED blinking Timer
+    //
+    Timer_IF_Stop(TIMERA2_BASE,TIMER_A);
+    Timer_IF_DeInit(TIMERA2_BASE,TIMER_A);
 
 }
 
@@ -1316,7 +1474,10 @@ void MonitorWasherTask(void *pvParameters)
     	//   proceed with listening for washer/dryer noises.
     	if(g_acTopicARN[0])
     	{
+    		GreenLedTimerConfigNStart();
 			WaitForStart();
+			GreenLedTimerDeinitStop();
+			GPIO_IF_LedOn(MCU_GREEN_LED_GPIO);
 			WaitForFinish();
 
 			//
@@ -1335,8 +1496,8 @@ void MonitorWasherTask(void *pvParameters)
 			// switch on Green LED to indicate Simplelink is properly up
 //			GPIO_IF_LedOn(MCU_GREEN_LED_GPIO);
 
-			// Start Timer to blink Orange LED till AP connection
-			LedTimerConfigNStart();
+			// Start Timer to blink Orange LED until we connect to the AP
+			OrangeLedTimerConfigNStart();
 
 			// Initialize AP security params
 			SecurityParams.Key = (signed char *)SECURITY_KEY;
@@ -1361,7 +1522,7 @@ void MonitorWasherTask(void *pvParameters)
 			//
 			// Disable the LED blinking Timer as Device is connected to AP
 			//
-			LedTimerDeinitStop();
+			OrangeLedTimerDeinitStop();
 
 			//
 			// Switch ON ORANGE LED to indicate that Device acquired an IP

@@ -69,13 +69,20 @@ PinMuxConfig(void)
     MAP_PinTypeUART(PIN_57, PIN_MODE_3);
 
     //
-    // Configure PIN_64 for GPIOOutput
+    // Configure PIN_64 (RED LED) for GPIOOutput
     //
     MAP_PinTypeGPIO(PIN_64, PIN_MODE_0, false);
     MAP_GPIODirModeSet(GPIOA1_BASE, 0x2, GPIO_DIR_MODE_OUT);
 
     //
-    // Configure PIN_02 for GPIOOutput
+	// Configure PIN_01 (ORANGE LED) for GPIOOutput
+	//
+	MAP_PinTypeGPIO(PIN_01, PIN_MODE_0, false);
+	MAP_GPIODirModeSet(GPIOA1_BASE, 0x4, GPIO_DIR_MODE_OUT);
+
+
+    //
+    // Configure PIN_02 (GREEN LED) for GPIOOutput
     //
     MAP_PinTypeGPIO(PIN_02, PIN_MODE_0, false);
     MAP_GPIODirModeSet(GPIOA1_BASE, 0x8, GPIO_DIR_MODE_OUT);
