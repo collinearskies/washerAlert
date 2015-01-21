@@ -1198,24 +1198,7 @@ RedBlinkIntHandler(void)
     ulInts = MAP_TimerIntStatus(TIMERA0_BASE, true);
     MAP_TimerIntClear(TIMERA0_BASE, ulInts);
 
-    //
-    // Increment our interrupt counter.
-    //
-    g_usTimerInts++;
-    if(!(g_usTimerInts & 0x1))
-    {
-        //
-        // Off Led
-        //
-        GPIO_IF_LedOff(MCU_RED_LED_GPIO);
-    }
-    else
-    {
-        //
-        // On Led
-        //
-        GPIO_IF_LedOn(MCU_RED_LED_GPIO);
-    }
+    GPIO_IF_LedToggle(MCU_RED_LED_GPIO);
 }
 
 //****************************************************************************
@@ -1254,7 +1237,6 @@ void RedLedTimerDeinitStop()
     Timer_IF_Stop(TIMERA0_BASE,TIMER_A);
     Timer_IF_DeInit(TIMERA0_BASE,TIMER_A);
     GPIO_IF_LedOff(MCU_RED_LED_GPIO);
-
 }
 
 //*****************************************************************************
@@ -1278,24 +1260,7 @@ OrangeBlinkIntHandler(void)
     ulInts = MAP_TimerIntStatus(TIMERA1_BASE, true);
     MAP_TimerIntClear(TIMERA1_BASE, ulInts);
 
-    //
-    // Increment our interrupt counter.
-    //
-    g_usTimerInts++;
-    if(!(g_usTimerInts & 0x1))
-    {
-        //
-        // Off Led
-        //
-        GPIO_IF_LedOff(MCU_ORANGE_LED_GPIO);
-    }
-    else
-    {
-        //
-        // On Led
-        //
-        GPIO_IF_LedOn(MCU_ORANGE_LED_GPIO);
-    }
+    GPIO_IF_LedToggle(MCU_ORANGE_LED_GPIO);
 }
 
 //****************************************************************************
@@ -1333,7 +1298,7 @@ void OrangeLedTimerDeinitStop()
     //
     Timer_IF_Stop(TIMERA1_BASE,TIMER_A);
     Timer_IF_DeInit(TIMERA1_BASE,TIMER_A);
-
+    GPIO_IF_LedOff(MCU_ORANGE_LED_GPIO);
 }
 
 //*****************************************************************************
@@ -1357,24 +1322,7 @@ GreenBlinkIntHandler(void)
     ulInts = MAP_TimerIntStatus(TIMERA2_BASE, true);
     MAP_TimerIntClear(TIMERA2_BASE, ulInts);
 
-    //
-    // Increment our interrupt counter.
-    //
-    g_usTimerInts++;
-    if(!(g_usTimerInts & 0x1))
-    {
-        //
-        // Off Led
-        //
-        GPIO_IF_LedOff(MCU_GREEN_LED_GPIO);
-    }
-    else
-    {
-        //
-        // On Led
-        //
-        GPIO_IF_LedOn(MCU_GREEN_LED_GPIO);
-    }
+    GPIO_IF_LedToggle(MCU_GREEN_LED_GPIO);
 }
 
 //****************************************************************************
@@ -1412,7 +1360,7 @@ void GreenLedTimerDeinitStop()
     //
     Timer_IF_Stop(TIMERA2_BASE,TIMER_A);
     Timer_IF_DeInit(TIMERA2_BASE,TIMER_A);
-
+    GPIO_IF_LedOff(MCU_GREEN_LED_GPIO);
 }
 
 //****************************************************************************
